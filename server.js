@@ -76,6 +76,51 @@ app.post('/api/notes', (req, res) => {
 
 });
 
+app.delete('/api/notes/:id', (req, res) => {
+  console.log(`${req.method} request received`);
+  console.log(`Request params: ${req.params.id}`);
+  let id = req.params.id;
+
+  if(id) {
+    /* read db.json into notesArray*/
+    /* iterate through the array and find the note with this id */
+    /* delete that note */
+    /* write the notes back to db.json */
+
+    fs.readFile("./db/db.json", "utf8", (error, data) => {
+      if (error) {
+        res.error("Error reading notes from database");
+      } else {
+        //console.log(data);
+        if(data) {
+          notesArray = JSON.parse(data);
+
+          for (let i = 0; i < notesArray.length; i++) {
+            if (id == notesArray[i].id) {
+              notesArray.splice(i,1);
+            }
+          }
+          console.log(notesArray);
+  
+          /* write all the notes to the db */
+          fs.writeFile('./db/db.json', JSON.stringify(notesArray), (err) => {
+            if (err) {
+              res.error("Error writing notes to database");
+            } else {
+              console.log(`note deleted from db`);
+              /* return id back to client */
+              /* client is not really handling the id. It gets the notes again. */
+              res.json(id);
+            }
+          });
+        }
+      }
+    });
+
+  
+  }
+});
+
 /* Wild card get */
 app.get('*', (req, res) => {
   console.log("GET request for * received");
