@@ -1,9 +1,10 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const { v4: uuidv4 } = require('uuid');
 const db = require('./db/db.json');
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 const app = express();
 
@@ -17,8 +18,10 @@ class Note {
   constructor(title, text) {
     this.title = title;
     this.text = text;
+    this.id = uuidv4();
   }
 }
+let newNote = undefined;
 
 /* HTML routes */
 app.get('/notes', (req, res) => {
@@ -30,43 +33,48 @@ app.get('/notes', (req, res) => {
 app.get('/api/notes', (req, res) => {
   fs.readFile("./db/db.json", "utf8", function(error, data) {
     if (error) {
-      return console.log(error);
+      console.log(error);
+      res.error("Error getting notes");
+    } else {
+      console.log(data);
+      notesArray = JSON.parse(data);
+      res.json(notesArray);
     }
-    console.log(data);
-    notesArray = JSON.parse(data);
   });
-  res.json(notesArray);
 });
 
 app.post('/api/notes', (req, res) => {
   console.log(`${req.method} to /api/notes received`);
-
-  console.log("New note received: " + req.body);
   let {title, text} = req.body;
-  console.log(title, text);
-  saveNewNote(title, text);
+  console.log("Request: " + title + ", " + text);
 
-  res.send("new Note received");
-});
-
-function saveNewNote (title, text) {
   fs.readFile("./db/db.json", "utf8", (error, data) => {
     if (error) {
-      console.log(error);
+      res.error("Error reading notes from database");
     } else {
-      console.log(data);
+      //console.log(data);
       if(data) {
         notesArray = JSON.parse(data);
-        // Write the string to a file
-        notesArray.push(new Note(title, text));
+        /* create a new Note object with a unique id */
+        newNote = new Note(title, text);
 
+        /* add to notes array */
+        notesArray.push(newNote);
+
+        /* write all the notes to the db */
         fs.writeFile('./db/db.json', JSON.stringify(notesArray), (err) => {
-          err? console.error(err): console.log(`new note for ${title} has been added to db`);
+          if (err) {
+            res.error("Error writing notes to database");
+          } else {
+            console.log(`new note has been added to db`);
+            res.json(newNote);
+          }
         });
       }
     }
   });
-}
+
+});
 
 /* Wild card get */
 app.get('*', (req, res) => {
